@@ -4,27 +4,8 @@ Train to detect multiple classes.
 
 Copyright (c) 2018 Matterport, Inc.
 Licensed under the MIT License (see LICENSE for details)
-Written by Waleed Abdulla
 
 ------------------------------------------------------------
-
-Usage: import the module (see Jupyter notebooks for examples), or run from
-       the command line as such:
-
-    # Train a new model starting from pre-trained COCO weights
-    python3 balloon.py train --dataset=/path/to/balloon/dataset --weights=coco
-
-    # Resume training a model that you had trained earlier
-    python3 balloon.py train --dataset=/path/to/balloon/dataset --weights=last
-
-    # Train a new model starting from ImageNet weights
-    python3 balloon.py train --dataset=/path/to/balloon/dataset --weights=imagenet
-
-    # Apply color splash to an image
-    python3 balloon.py splash --weights=/path/to/weights/file.h5 --image=<URL or path to file>
-
-    # Apply color splash to video using the last weights you trained
-    python3 balloon.py splash --weights=last --video=<URL or path to file>
 """
 
 import os
@@ -33,6 +14,14 @@ import json
 import datetime
 import numpy as np
 import skimage.draw
+import time
+import imgaug
+from imgaug import augmenters as aug
+from random import sample
+import pickle #changed
+
+#import warnings
+#warnings.filterwarnings("ignore")
 
 # Root directory of the project
 ROOT_DIR = ROOT_DIR = os.getcwd()
@@ -63,21 +52,21 @@ class CustomConfig(Config):
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU.
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 5  # Background + 5 classes (rear bump, front bump, headlamp, door, hood)
+    NUM_CLASSES = 1 + 1  # Background + 5 classes (rear bump, front bump, headlamp, door, hood)
 
     # Use smaller images for faster training. Set the limits of the small side
     # the large side, and that determines the image shape.
-    IMAGE_MIN_DIM = 512
-    IMAGE_MAX_DIM = 512
+    IMAGE_MIN_DIM = 64
+    IMAGE_MAX_DIM = 2048
 
     # Number of training steps per epoch
     STEPS_PER_EPOCH = 100
 
-    # Skip detections with < 90% confidence
-    DETECTION_MIN_CONFIDENCE = 0.9
+    # Skip detections with < 50% confidence
+    DETECTION_MIN_CONFIDENCE = 0.5
 
 
 ############################################################
@@ -92,14 +81,38 @@ class CustomDataset(utils.Dataset):
         subset: Subset to load: train or val
         """
         # Add classes. We have only one class to add.
-        self.add_class("part", 1, "rear_bumper")
-        self.add_class("part", 2, "front_bumper")
-        self.add_class("part", 3, "headlamp")
-        self.add_class("part", 4, "door")
-        self.add_class("part", 5, "hood")
+        self.add_class("part", 1, "total")
+        #comment
+        '''
+        self.add_class("part", 2, "flat_tire")
+        self.add_class("part", 3, "corrosion")
+        self.add_class("part", 4, "front_back_window")
+        self.add_class("part", 5, "side_window")
+        self.add_class("part", 6, "rearview_mirror")
+        self.add_class("part", 7, "broken_headlamp")
+        
+        #self.add_class("part", 8, "scratch")
+        #self.add_class("part", 9, "dent")
+        
+        self.add_class("part", 8, "bumper_light")
+        self.add_class("part", 9, "bumper_moderate")
+        self.add_class("part", 10, "bumper_severe")
+        self.add_class("part", 11, "door_light")
+        self.add_class("part", 12, "door_moderate")
+        self.add_class("part", 13, "door_severe")
+        self.add_class("part", 14, "hood_light")
+        self.add_class("part", 15, "hood_moderate")
+        self.add_class("part", 16, "hood_severe")
+        self.add_class("part", 17, "wing_light")
+        self.add_class("part", 18, "wing_moderate")
+        self.add_class("part", 19, "wing_severe")
+        self.add_class("part", 20, "trunk_moderate")
+        self.add_class("part", 21, "trunk_severe")
+        
+        '''
 
         # Train or validation dataset?
-        assert subset in ["train", "val"]
+        assert subset in ["train", "val", "test", "test_new"]                   #assert subset in ["train", "val"] 
         dataset_dir = os.path.join(dataset_dir, subset)
 
         # Load annotations
@@ -141,16 +154,58 @@ class CustomDataset(utils.Dataset):
             num_ids = []
             for n in objects:
                 try:
-                    if n['name'] == 'rear_bumper':
+                    if n['name'] == 'total':
                         num_ids.append(1)
-                    elif n['name'] == 'front_bumper':
+                        
+                    '''
+                    elif n['name'] == 'flat_tire':
                         num_ids.append(2)
-                    elif n['name'] == 'headlamp':
+                    elif n['name'] == 'corrosion':
                         num_ids.append(3)
-                    elif n['name'] == 'hood':
+                    elif n['name'] == 'front_back_window':
                         num_ids.append(4)
-                    elif n['name'] == 'door':
+                    elif n['name'] == 'side_window':
                         num_ids.append(5)
+                    elif n['name'] == 'rearview_mirror':
+                        num_ids.append(6)
+                    elif n['name'] == 'broken_headlamp':
+                        num_ids.append(7)
+                        
+                    #elif n['name'] == 'scratch':
+                    #    num_ids.append(8)
+                    #elif n['name'] == 'dent':
+                    #    num_ids.append(9)
+                    
+                    elif n['name'] == 'bumper_light':
+                        num_ids.append(8)
+                    elif n['name'] == 'bumper_moderate':
+                        num_ids.append(9)
+                    elif n['name'] == 'bumper_severe':
+                        num_ids.append(10)
+                    elif n['name'] == 'door_light':
+                        num_ids.append(11)
+                    elif n['name'] == 'door_moderate':
+                        num_ids.append(12)
+                    elif n['name'] == 'door_severe':
+                        num_ids.append(13)
+                    elif n['name'] == 'hood_light':
+                        num_ids.append(14)
+                    elif n['name'] == 'hood_moderate':
+                        num_ids.append(15)
+                    elif n['name'] == 'hood_severe':
+                        num_ids.append(16)
+                    elif n['name'] == 'wing_light':
+                        num_ids.append(17)
+                    elif n['name'] == 'wing_moderate':
+                        num_ids.append(18)
+                    elif n['name'] == 'wing_severe':
+                        num_ids.append(19)
+                    elif n['name'] == 'trunk_moderate':
+                        num_ids.append(20)
+                    elif n['name'] == 'trunk_severe':
+                        num_ids.append(21)
+                    
+                    '''
                 except:
                     pass
             # load_mask() needs the image size to convert polygons to masks.
@@ -177,7 +232,7 @@ class CustomDataset(utils.Dataset):
         """
         # If not a balloon dataset image, delegate to parent class.
         image_info = self.image_info[image_id]
-        if image_info["source"] != "balloon":
+        if image_info["source"] != "part":
             return super(self.__class__, self).load_mask(image_id)
 
         info = self.image_info[image_id]
@@ -193,7 +248,7 @@ class CustomDataset(utils.Dataset):
         # print("info['num_ids']=", info['num_ids'])
         # Map class names to class IDs.
         num_ids = info['num_ids']
-        return mask.astype(np.bool), num_ids.astype(np.int32)
+        return np.array(mask).astype(np.bool), np.array(num_ids).astype(np.int32) #array
 
     def image_reference(self, image_id):
         """Return the path of the image."""
@@ -215,7 +270,31 @@ def train(model):
     dataset_val = CustomDataset()
     dataset_val.load_custom(args.dataset, "val")
     dataset_val.prepare()
-
+    
+    '''
+    augmentation = imgaug.augmenters.Sometimes(7/8,aug.OneOf(
+                                            [
+                                            imgaug.augmenters.Affine(translate_percent={"x": 0.05, "y": 0.05}, rotate=(-10, 10)),   #поворот    
+                                            imgaug.augmenters.AdditiveGaussianNoise(scale=5), #шум
+                                            imgaug.augmenters.CoarseDropout(p=0.1, size_percent=0.1),   #черные блоки
+                                            imgaug.augmenters.AddToHueAndSaturation((-50, 50)),  #пятна цвета
+                                            imgaug.augmenters.Fliplr(1.0),                      #отражание на 180
+                                            imgaug.augmenters.AverageBlur(k=8),                 ##блюр
+                                            imgaug.augmenters.CropAndPad(percent=(-0.05, 0.1), pad_cval=(0, 255)) 
+                                             ]
+                                        )
+                                   )
+    
+    
+    augmentation = imgaug.augmenters.Sometimes(2/3,aug.OneOf(
+                                            [
+                                            imgaug.augmenters.Affine(translate_percent={"x": 0.05, "y": 0.05}, rotate=(-10, 10)),   #поворот    
+                                            imgaug.augmenters.Crop(percent=sample([0.1,0.125,0.15,0.175,0.2],k=1)[0])                #кроппинг
+                                             ]
+                                        )
+                                   )
+    '''
+    
     # *** This training schedule is an example. Update to your needs ***
     # Since we're using a very small dataset, and starting from
     # COCO trained weights, we don't need to train too long. Also,
@@ -223,8 +302,11 @@ def train(model):
     print("Training network heads")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
-                epochs=10,
-                layers='heads')
+                epochs=50, #changed
+                layers='4+')
+    
+    model_path = 'mask_rcnn_weights' + '.h5'   #changed
+    model.keras_model.save_weights(model_path) #changed
 
 
 def color_splash(image, mask):
@@ -333,9 +415,12 @@ if __name__ == '__main__':
     # Validate arguments
     if args.command == "train":
         assert args.dataset, "Argument --dataset is required for training"
-    elif args.command == "splash":
-        assert args.image or args.video,\
-               "Provide --image or --video to apply color splash"
+    elif args.command == "inference":
+        assert args.dataset, "Argument --dataset is required for inference"  #changed
+    
+    #elif args.command == "splash":                                         #changed
+        #assert args.image or args.video,\                                  #changed
+               #"Provide --image or --video to apply color splash"          #changed
 
     print("Weights: ", args.weights)
     print("Dataset: ", args.dataset)
@@ -390,9 +475,39 @@ if __name__ == '__main__':
     # Train or evaluate
     if args.command == "train":
         train(model)
+        
     elif args.command == "splash":
-        detect_and_color_splash(model, image_path=args.image,
+        paths = [os.path.join(args.dataset, file_path) for file_path in os.listdir(args.dataset)]
+        for image_path in paths:
+            detect_and_color_splash(model, image_path=image_path,
                                 video_path=args.video)
+    elif args.command == "inference":
+        paths = [os.path.join(args.dataset, file_path) for file_path in os.listdir(args.dataset)]
+        total_results = []
+        i=0
+        class_names = ['BG', 'total']
+        for image_path in paths:
+            print('--------------------------------------------------------------')
+            i+=1
+            print(i)
+            print(image_path)
+            image = skimage.io.imread(image_path)
+            results = model.detect([image], verbose=1)
+            
+            ax = get_ax(1)
+            r = results[0]
+            display_instances(image, r['rois'], r['masks'], r['class_ids'], 
+                                        class_names, r['scores'], ax=ax,
+                                        title="Predictions")
+            
+            total_results.append(r)
+            
+        pickle.dump(total_results, open( "total_results.pickle", "wb" ) )
+    
+    '''
     else:
         print("'{}' is not recognized. "
               "Use 'train' or 'splash'".format(args.command))
+        
+        
+    '''
