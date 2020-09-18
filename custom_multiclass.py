@@ -135,8 +135,8 @@ class CustomDataset(utils.Dataset):
             # shape_attributes (see json format above)
             #for r in a['regions']:
                 #polygons = [{'all_points_x': r['shape_attributes']['all_points_x'], 'all_points_y': r['shape_attributes']['all_points_y']}]
-            polygons = [r['shape_attributes'] for r in a['regions']]
-            objects = [s['region_attributes'] for s in a['regions']]
+            polygons = [r['shape_attributes'] for r in list(a['regions'].values())]
+            objects = [s['region_attributes'] for s in list(a['regions'].values())]
             #num_ids = [int(class_nums[n['name']]) for n in objects]
             num_ids = []
             for n in objects:
