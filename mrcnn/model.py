@@ -31,6 +31,9 @@ assert LooseVersion(tf.__version__) >= LooseVersion("1.3")
 assert LooseVersion(keras.__version__) >= LooseVersion('2.0.8')
 
 
+print('СМОТРИ СЮДА!!!!!!!!!!!!!!!!!')
+print(tf.test.gpu_device_name())
+
 ############################################################
 #  Utility Functions
 ############################################################
