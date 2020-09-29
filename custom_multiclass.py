@@ -33,7 +33,7 @@ import json
 import datetime
 import numpy as np
 import skimage.draw
-
+import pickle
 # Root directory of the project
 ROOT_DIR = ROOT_DIR = os.getcwd()
 
@@ -63,7 +63,7 @@ class CustomConfig(Config):
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU.
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 1 #2 #changed
 
     # Number of classes (including background)
     NUM_CLASSES = 1 + 5  # Background + 5 classes (rear bump, front bump, headlamp, door, hood)
@@ -177,7 +177,7 @@ class CustomDataset(utils.Dataset):
         """
         # If not a balloon dataset image, delegate to parent class.
         image_info = self.image_info[image_id]
-        if image_info["source"] != "balloon":
+        if image_info["source"] != "part": #changed
             return super(self.__class__, self).load_mask(image_id)
 
         info = self.image_info[image_id]
@@ -193,7 +193,11 @@ class CustomDataset(utils.Dataset):
         # print("info['num_ids']=", info['num_ids'])
         # Map class names to class IDs.
         num_ids = info['num_ids']
-        return mask.astype(np.bool), num_ids.astype(np.int32)
+        print('ОБРАБАТЫВАЮ...')
+        print(info["id"])
+        print(info["height"], info["width"])
+        return mask.astype(np.bool), np.array(num_ids).astype(np.int32) #changed
+
 
     def image_reference(self, image_id):
         """Return the path of the image."""

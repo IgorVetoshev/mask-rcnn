@@ -2360,7 +2360,7 @@ class MaskRCNN():
         # multiprocessing workers. See discussion here:
         # https://github.com/matterport/Mask_RCNN/issues/13#issuecomment-353124009
         if os.name is 'nt':
-            workers = 0
+            workers = 1 #0 #changed
         else:
             workers = 1 #multiprocessing.cpu_count() #changed
 
