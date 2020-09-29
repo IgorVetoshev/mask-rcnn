@@ -63,7 +63,7 @@ class CustomConfig(Config):
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU.
-    IMAGES_PER_GPU = 1 #2 #changed
+    IMAGES_PER_GPU = 2
 
     # Number of classes (including background)
     NUM_CLASSES = 1 + 5  # Background + 5 classes (rear bump, front bump, headlamp, door, hood)
@@ -193,9 +193,9 @@ class CustomDataset(utils.Dataset):
         # print("info['num_ids']=", info['num_ids'])
         # Map class names to class IDs.
         num_ids = info['num_ids']
-        print('ОБРАБАТЫВАЮ...')
-        print(info["id"])
-        print(info["height"], info["width"])
+        #print('ОБРАБАТЫВАЮ...')
+        #print(info["id"])
+        #print(info["height"], info["width"])
         return mask.astype(np.bool), np.array(num_ids).astype(np.int32) #changed
 
 
