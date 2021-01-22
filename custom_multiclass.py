@@ -66,7 +66,7 @@ class CustomConfig(Config):
     IMAGES_PER_GPU = 2
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 5  # Background + 5 classes (rear bump, front bump, headlamp, door, hood)
+    NUM_CLASSES = 1 + 1  # Background + 5 classes (rear bump, front bump, headlamp, door, hood)
 
     # Use smaller images for faster training. Set the limits of the small side
     # the large side, and that determines the image shape.
