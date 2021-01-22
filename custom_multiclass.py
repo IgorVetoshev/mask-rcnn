@@ -92,11 +92,12 @@ class CustomDataset(utils.Dataset):
         subset: Subset to load: train or val
         """
         # Add classes. We have only one class to add.
-        self.add_class("part", 1, "rear_bumper")
-        self.add_class("part", 2, "front_bumper")
-        self.add_class("part", 3, "headlamp")
-        self.add_class("part", 4, "door")
-        self.add_class("part", 5, "hood")
+        self.add_class("part", 1, "damage")
+        #self.add_class("part", 1, "rear_bumper")
+        #self.add_class("part", 2, "front_bumper")
+        #self.add_class("part", 3, "headlamp")
+        #self.add_class("part", 4, "door")
+        #self.add_class("part", 5, "hood")
 
         # Train or validation dataset?
         assert subset in ["train", "val"]
